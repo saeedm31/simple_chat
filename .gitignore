@@ -1,0 +1,28 @@
+# Deployment Scripts & Private Configs
+*.exp
+deploy/
+deploy.zip
+*.md
+!README.md
+!README_GitHub.md
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Python
+backend/*.db
+backend/.env
+backend/__pycache__/
+backend/venv/
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# Gemini/Brain metadata
+.gemini/
+brain/
+*.log
