@@ -7,11 +7,27 @@ import CryptoJS from 'crypto-js';
  */
 
 /**
+ * Generate a strong 256-bit AES key from a passphrase using PBKDF2.
+ * This ensures the same passphrase always results in the same key.
+ */
+export function deriveKey(passphrase) {
+  // We use a fixed salt for simplicity since the security comes from the 
+  // passphrase being shared in-person and never stored on the server.
+  const salt = CryptoJS.enc.Utf8.parse('simple-chat-v1-salt');
+  const key = CryptoJS.PBKDF2(passphrase, salt, {
+    keySize: 256 / 32,
+    iterations: 1000
+  });
+  return key.toString(CryptoJS.enc.Base64);
+}
+
+/**
  * Generate a random 32-byte AES key as a base64 string.
+ * @deprecated Use deriveKey for passphrase-based E2EE.
  */
 export function generateKey() {
-  const salt = CryptoJS.lib.WordArray.random(32);
-  return salt.toString(CryptoJS.enc.Base64);
+  const bytes = CryptoJS.lib.WordArray.random(32);
+  return bytes.toString(CryptoJS.enc.Base64);
 }
 
 /**

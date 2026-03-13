@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getFriends, createFriend, deleteFriend } from '../utils/api';
-import { generateKey } from '../utils/crypto';
+import { deriveKey } from '../utils/crypto';
 
 const BASE_ORIGIN = window.location.origin;
 
 export default function Dashboard() {
   const [friends, setFriends] = useState([]);
   const [newName, setNewName] = useState('');
+  const [passphrase, setPassphrase] = useState('');
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [copied, setCopied] = useState(null);
@@ -32,11 +33,14 @@ export default function Dashboard() {
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!newName.trim()) return;
+    if (!newName.trim() || !passphrase.trim()) {
+      alert('Please enter both name and passphrase.');
+      return;
+    }
     setAdding(true);
     try {
-      // True E2EE: Generate key in browser
-      const key = generateKey();
+      // Derive key from manual passphrase
+      const key = deriveKey(passphrase.trim());
       
       const res = await createFriend(newName.trim());
       const newFriend = res.data;
@@ -47,9 +51,10 @@ export default function Dashboard() {
       localStorage.setItem('massenger_keys', JSON.stringify(localKeys));
 
       setNewName('');
+      setPassphrase('');
       // Attach key locally for immediate UI use
       setFriends((prev) => [{ ...newFriend, chat_key: key }, ...prev]);
-      alert(`Success: ${newName.trim()} added!`);
+      alert(`Success: ${newName.trim()} added! Remember to tell them the passphrase in person.`);
     } catch (err) {
       console.error('Failed to add friend:', err);
       alert('Error: Failed to add friend. Please check connection.');
@@ -81,9 +86,8 @@ export default function Dashboard() {
   };
 
   const inviteLink = (f) => {
-    const localKeys = JSON.parse(localStorage.getItem('massenger_keys') || '{}');
-    const key = f.chat_key || localKeys[f.id] || '';
-    return `${BASE_ORIGIN}/f/${f.token}#key=${encodeURIComponent(key)}`;
+    // Key is no longer in the link for Passphrase-based E2EE
+    return `${BASE_ORIGIN}/f/${f.token}`;
   };
 
   const copyToClipboard = (text) => {
@@ -139,7 +143,7 @@ export default function Dashboard() {
       </header>
 
       <div className="dash-content">
-        <form onSubmit={handleAdd} className="add-friend-form">
+        <form onSubmit={handleAdd} className="add-friend-form-vertical">
           <input
             id="friend-name-input"
             type="text"
@@ -148,8 +152,16 @@ export default function Dashboard() {
             placeholder="Friend's name…"
             maxLength={60}
           />
+          <input
+            id="friend-pass-input"
+            type="password"
+            value={passphrase}
+            onChange={(e) => setPassphrase(e.target.value)}
+            placeholder="Set a secret passphrase…"
+            autoComplete="new-password"
+          />
           <button id="add-friend-btn" type="submit" className="btn-primary" disabled={adding}>
-            {adding ? '…' : '+ Add'}
+            {adding ? '…' : '+ Add Friend'}
           </button>
         </form>
 

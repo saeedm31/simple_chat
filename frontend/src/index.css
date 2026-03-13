@@ -273,6 +273,32 @@ body {
 }
 
 /* ── Add friend form ─────────────────────────────── */
+.add-friend-form-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1.25rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.add-friend-form-vertical input {
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.add-friend-form-vertical input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  background: rgba(0, 0, 0, 0.3);
+}
+
 .add-friend-form {
   display: flex;
   gap: 0.5rem;
@@ -747,4 +773,71 @@ body {
   .chat-header-info { gap: 0.4rem; }
   .chat-sub { display: none; }
   .bubble { max-width: 95%; }
+}
+
+/* ── Unlock Overlay ────────────────────────────── */
+.unlock-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(14px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.unlock-card {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 2rem;
+  border-radius: 1.5rem;
+  text-align: center;
+  max-width: 360px;
+  width: 100%;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+  animation: fadeUp 0.3s ease-out;
+}
+
+.unlock-card .logo-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.unlock-card h3 {
+  margin-bottom: 0.75rem;
+  font-size: 1.4rem;
+  color: #fff;
+}
+
+.unlock-card p {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+.unlock-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.unlock-card input {
+  padding: 0.8rem 1rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  color: #fff;
+  text-align: center;
+  font-size: 1.1rem;
+  width: 100%;
+}
+
+.unlock-card input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: rgba(0, 0, 0, 0.5);
 }

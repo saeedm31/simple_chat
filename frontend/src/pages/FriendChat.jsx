@@ -6,9 +6,12 @@ import { encodeToNumbers } from '../utils/encode';
 import MessageBubble from '../components/MessageBubble';
 import EncodeInput from '../components/EncodeInput';
 
+import { deriveKey } from '../utils/crypto';
+
 export default function FriendChat() {
   const { token } = useParams();
   const [chatKey, setChatKey] = useState('');
+  const [unlockPass, setUnlockPass] = useState('');
   const [friendName, setFriendName] = useState('');
   const [messages, setMessages] = useState([]);
   const [decrypted, setDecrypted] = useState({});
@@ -18,18 +21,32 @@ export default function FriendChat() {
   const bottomRef = useRef(null);
 
   useEffect(() => {
-    // Extract AES key from URL hash: #key=<base64key>
-    const hash = window.location.hash;
-    const match = hash.match(/[#&]key=([^&]+)/);
-    if (!match) {
-      setError('Invalid invite link — missing encryption key.');
+    // Check locally first
+    const localKeys = JSON.parse(localStorage.getItem('massenger_keys') || '{}');
+    const key = localKeys[token];
+    if (key) {
+      setChatKey(key);
+      loadChat(key);
+    } else {
       setLoading(false);
-      return;
     }
-    const key = decodeURIComponent(match[1]);
-    setChatKey(key);
-    loadChat(key);
   }, [token]);
+
+  const handleUnlock = (e) => {
+    e.preventDefault();
+    if (!unlockPass.trim()) return;
+    const key = deriveKey(unlockPass.trim());
+    
+    // Save locally
+    const localKeys = JSON.parse(localStorage.getItem('massenger_keys') || '{}');
+    localKeys[token] = key;
+    localStorage.setItem('massenger_keys', JSON.stringify(localKeys));
+    
+    setChatKey(key);
+    setUnlockPass('');
+    setLoading(true);
+    loadChat(key);
+  };
 
   const loadChat = async (key) => {
     try {
@@ -105,6 +122,25 @@ export default function FriendChat() {
       </header>
 
       <div className="messages-area">
+        {!loading && !chatKey && (
+          <div className="unlock-overlay">
+            <div className="unlock-card">
+              <span className="logo-icon">🔐</span>
+              <h3>Encrypted Connection</h3>
+              <p>This chat is secured with E2EE. Please enter the passphrase provided by your friend in person.</p>
+              <form onSubmit={handleUnlock}>
+                <input
+                  type="password"
+                  value={unlockPass}
+                  onChange={(e) => setUnlockPass(e.target.value)}
+                  placeholder="Secret Passphrase…"
+                  autoFocus
+                />
+                <button type="submit" className="btn-primary">Unlock 📡</button>
+              </form>
+            </div>
+          </div>
+        )}
         {loading ? (
           <div className="empty-state">Loading…</div>
         ) : messages.length === 0 ? (

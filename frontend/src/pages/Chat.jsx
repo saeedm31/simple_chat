@@ -15,6 +15,7 @@ export default function Chat() {
   const [messages, setMessages] = useState([]);
   const [decrypted, setDecrypted] = useState({});
   const [loading, setLoading] = useState(true);
+  const [unlockPass, setUnlockPass] = useState('');
   const bottomRef = useRef(null);
 
   // Load friend info if not passed via state
@@ -85,6 +86,20 @@ export default function Chat() {
     }
   };
 
+  const handleUnlock = (e) => {
+    e.preventDefault();
+    if (!unlockPass.trim()) return;
+    const key = deriveKey(unlockPass.trim());
+    
+    // Save locally
+    const localKeys = JSON.parse(localStorage.getItem('massenger_keys') || '{}');
+    localKeys[friendId] = key;
+    localStorage.setItem('massenger_keys', JSON.stringify(localKeys));
+    
+    setFriend((prev) => ({ ...prev, chat_key: key }));
+    setUnlockPass('');
+  };
+
   const handleDelete = async (msgId) => {
     await deleteMessage(msgId);
     setMessages((prev) => prev.filter((m) => m.id !== msgId));
@@ -110,11 +125,21 @@ export default function Chat() {
 
       <div className="messages-area">
         {!loading && friend && !friend.chat_key && (
-          <div className="key-warning-banner">
-            <span className="warning-icon">⚠️</span>
-            <div className="warning-text">
-              <strong>Encryption Key Missing</strong>
-              <p>Because you switched to HTTPS, your previous secret keys are not available. Please delete and re-add this friend to start a new secure chat.</p>
+          <div className="unlock-overlay">
+            <div className="unlock-card">
+              <span className="logo-icon">🔐</span>
+              <h3>Chat Locked</h3>
+              <p>Enter the secret passphrase to unlock this conversation.</p>
+              <form onSubmit={handleUnlock}>
+                <input
+                  type="password"
+                  value={unlockPass}
+                  onChange={(e) => setUnlockPass(e.target.value)}
+                  placeholder="Passphrase…"
+                  autoFocus
+                />
+                <button type="submit" className="btn-primary">Unlock 📡</button>
+              </form>
             </div>
           </div>
         )}
