@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { getFriendInfo, getFriendMessages, friendSendMessage } from '../utils/api';
 import { encryptMessage, decryptMessage } from '../utils/crypto';
 import { encodeToNumbers } from '../utils/encode';
@@ -10,6 +10,8 @@ import { deriveKey } from '../utils/crypto';
 
 export default function FriendChat() {
   const { token } = useParams();
+  const navigate = useNavigate();
+  const [activeToken, setActiveToken] = useState('');
   const [chatKey, setChatKey] = useState('');
   const [unlockPass, setUnlockPass] = useState('');
   const [friendName, setFriendName] = useState('');
@@ -21,16 +23,32 @@ export default function FriendChat() {
   const bottomRef = useRef(null);
 
   useEffect(() => {
-    // Check locally first
+    let currentToken = token || sessionStorage.getItem('friend_token');
+    
+    if (token) {
+      // If arrived via direct link, save and mask URL
+      sessionStorage.setItem('friend_token', token);
+      setTimeout(() => navigate('/messenger', { replace: true }), 100);
+    }
+
+    if (!currentToken) {
+      setError('No chat session found. Please find your chat on the home page.');
+      setLoading(false);
+      return;
+    }
+
+    setActiveToken(currentToken);
+
+    // Check locally for encryption keys
     const localKeys = JSON.parse(localStorage.getItem('massenger_keys') || '{}');
-    const key = localKeys[token];
+    const key = localKeys[currentToken];
     if (key) {
       setChatKey(key);
-      loadChat(key);
+      loadChat(currentToken, key);
     } else {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, navigate]);
 
   const handleUnlock = (e) => {
     e.preventDefault();
@@ -39,20 +57,20 @@ export default function FriendChat() {
     
     // Save locally
     const localKeys = JSON.parse(localStorage.getItem('massenger_keys') || '{}');
-    localKeys[token] = key;
+    localKeys[activeToken] = key;
     localStorage.setItem('massenger_keys', JSON.stringify(localKeys));
     
     setChatKey(key);
     setUnlockPass('');
     setLoading(true);
-    loadChat(key);
+    loadChat(activeToken, key);
   };
 
-  const loadChat = async (key) => {
+  const loadChat = async (targetToken, key) => {
     try {
       const [infoRes, msgRes] = await Promise.all([
-        getFriendInfo(token),
-        getFriendMessages(token),
+        getFriendInfo(targetToken),
+        getFriendMessages(targetToken),
       ]);
       setFriendName(infoRes.data.name);
       setMessages(msgRes.data);
@@ -64,16 +82,17 @@ export default function FriendChat() {
       setDecrypted(dec);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } catch {
-      setError('Invalid or expired invite link.');
+      setError('Invalid or expired chat session.');
     } finally {
       setLoading(false);
     }
   };
 
+
   const handleSend = async (text, isEncoded) => {
     const plaintext = isEncoded ? encodeToNumbers(text) : text;
     const { ciphertext, iv } = await encryptMessage(plaintext, chatKey);
-    const res = await friendSendMessage(token, {
+    const res = await friendSendMessage(activeToken, {
       content_encrypted: ciphertext,
       iv,
       is_encoded: isEncoded,

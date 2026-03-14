@@ -12,6 +12,7 @@ router = APIRouter(prefix="/api/friend")
 class FriendInfo(BaseModel):
     id: int
     name: str
+    token: str
 
     class Config:
         from_attributes = True
@@ -44,6 +45,15 @@ def get_friend_by_token(token: str, db: Session) -> Friend:
 
 
 # ── Endpoints ────────────────────────────────────────────
+@router.get("/lookup/{name}", response_model=FriendInfo)
+def lookup_friend(name: str, db: Session = Depends(get_db)):
+    # Case-insensitive lookup
+    friend = db.query(Friend).filter(Friend.name.ilike(name)).first()
+    if not friend:
+        raise HTTPException(status_code=404, detail="Friend not found")
+    return friend
+
+
 @router.get("/{token}", response_model=FriendInfo)
 def get_friend_info(token: str, db: Session = Depends(get_db)):
     friend = get_friend_by_token(token, db)

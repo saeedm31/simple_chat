@@ -28,3 +28,5 @@ export const getFriendInfo = (token) => api.get(`/api/friend/${token}`);
 export const getFriendMessages = (token) => api.get(`/api/friend/${token}/messages`);
 export const friendSendMessage = (token, payload) =>
   api.post(`/api/friend/${token}/send`, payload);
+
+export const lookupFriend = (name) => api.get(`/api/friend/lookup/${name}`);
