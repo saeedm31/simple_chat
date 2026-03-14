@@ -107,6 +107,11 @@ export default function FriendChat() {
     }, 1500);
   };
 
+  const handleExit = () => {
+    sessionStorage.removeItem('friend_token');
+    navigate('/');
+  };
+
   if (error) {
     return (
       <div className="auth-page">
@@ -133,10 +138,19 @@ export default function FriendChat() {
         <button
           id="friend-refresh-btn"
           className="btn-icon"
-          onClick={() => loadChat(chatKey)}
+          onClick={() => loadChat(activeToken, chatKey)}
           title="Refresh"
         >
           ↻
+        </button>
+        <button
+          id="friend-exit-btn"
+          className="btn-icon"
+          onClick={handleExit}
+          style={{ color: '#ff4d4d', fontSize: '1.2rem', marginLeft: '0.5rem' }}
+          title="Exit Chat"
+        >
+          ✕
         </button>
       </header>
 

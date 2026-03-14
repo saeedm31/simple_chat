@@ -30,9 +30,11 @@ export default function Chat() {
     const updateFriend = (f) => {
       const k = f.chat_key || localKeys[f.id];
       setFriend({ ...f, chat_key: k });
+      if (!k) setLoading(false);
     };
 
     if (!friend || !friend.chat_key) {
+      setLoading(true);
       getFriends().then((res) => {
         const f = res.data.find((x) => x.id === parseInt(friendId));
         if (f) {
@@ -40,7 +42,12 @@ export default function Chat() {
         } else {
            navigate('/dashboard');
         }
+      }).catch(err => {
+        console.error('getFriends failed:', err);
+        setLoading(false);
       });
+    } else {
+      setLoading(false);
     }
   }, [friendId, friend]);
 
@@ -49,17 +56,32 @@ export default function Chat() {
     loadMessages();
   }, [friend]);
 
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/');
+  };
+
   const loadMessages = async () => {
-    const res = await getAdminChat(friendId);
-    setMessages(res.data);
-    setLoading(false);
-    // Decrypt all messages using the friend's local chat_key
-    const dec = {};
-    for (const msg of res.data) {
-      dec[msg.id] = await decryptMessage(msg.content_encrypted, msg.iv, friend.chat_key);
+    try {
+      const res = await getAdminChat(friendId);
+      setMessages(res.data);
+      // Decrypt all messages using the friend's local chat_key
+      const dec = {};
+      for (const msg of res.data) {
+        try {
+          dec[msg.id] = await decryptMessage(msg.content_encrypted, msg.iv, friend?.chat_key);
+        } catch (e) {
+          console.warn(`Decryption failed for msg ${msg.id}:`, e);
+          dec[msg.id] = '[decryption failed]';
+        }
+      }
+      setDecrypted(dec);
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } catch (err) {
+      console.error('loadMessages failed:', err);
+    } finally {
+      setLoading(false);
     }
-    setDecrypted(dec);
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
   const handleSend = async (text, isEncoded) => {
@@ -120,6 +142,9 @@ export default function Chat() {
         </div>
         <button id="refresh-btn" className="btn-icon" onClick={loadMessages} title="Refresh">
           ↻
+        </button>
+        <button id="chat-logout-btn" className="btn-icon" onClick={handleLogout} style={{ color: '#ff4d4d', marginLeft: '0.5rem' }} title="Logout">
+          ✕
         </button>
       </header>
 
