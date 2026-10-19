@@ -26,3 +26,6 @@ frontend/.env.local
 .gemini/
 brain/
 *.log
+
+__pycache__/
+*.pyc

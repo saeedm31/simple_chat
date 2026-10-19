@@ -1,7 +1,7 @@
 import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from database import get_db
 from models import Friend, Message
 
@@ -31,8 +31,8 @@ class MessageOut(BaseModel):
 
 
 class SendMessageBody(BaseModel):
-    content_encrypted: str
-    iv: str
+    content_encrypted: str = Field(min_length=1, max_length=20000)
+    iv: str = Field(min_length=1, max_length=64)
     is_encoded: bool = False
 
 

@@ -1,10 +1,10 @@
-import os
 import secrets
-import base64
 import datetime
-from fastapi import APIRouter, Depends, HTTPException, status
+import time
+from collections import defaultdict, deque
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from database import get_db
 from models import Friend, Message
 from auth import verify_password, create_access_token, verify_token, ADMIN_USERNAME
@@ -25,7 +25,7 @@ class LoginResponse(BaseModel):
 
 
 class FriendCreate(BaseModel):
-    name: str
+    name: str = Field(min_length=1, max_length=100)
 
 
 class FriendOut(BaseModel):
@@ -55,19 +55,42 @@ class MessageOut(BaseModel):
 
 
 class SendMessageBody(BaseModel):
-    content_encrypted: str
-    iv: str
+    content_encrypted: str = Field(min_length=1, max_length=20000)
+    iv: str = Field(min_length=1, max_length=64)
     is_encoded: bool = False
+
+
+# ── Login brute-force protection ─────────────────────────
+MAX_FAILED_LOGINS = 5
+LOCKOUT_SECONDS = 15 * 60
+_failed_logins: dict[str, deque] = defaultdict(deque)
+
+
+def _recent_failures(ip: str) -> deque:
+    q = _failed_logins[ip]
+    now = time.monotonic()
+    while q and now - q[0] > LOCKOUT_SECONDS:
+        q.popleft()
+    return q
 
 
 # ── Endpoints ────────────────────────────────────────────
 @router.post("/login", response_model=LoginResponse)
-def login(body: LoginRequest):
-    if body.username != ADMIN_USERNAME or not verify_password(body.password):
+def login(body: LoginRequest, request: Request):
+    ip = request.client.host if request.client else "unknown"
+    failures = _recent_failures(ip)
+    if len(failures) >= MAX_FAILED_LOGINS:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed attempts. Try again in 15 minutes.",
+        )
+    if not secrets.compare_digest(body.username.encode(), ADMIN_USERNAME.encode()) or not verify_password(body.password):
+        failures.append(time.monotonic())
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
         )
+    failures.clear()
     token = create_access_token({"sub": body.username})
     return {"access_token": token, "token_type": "bearer", "username": body.username}
 
